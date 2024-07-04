@@ -421,5 +421,61 @@ This basically just means that we can adapt the learning rate to the Parameters.
     \end{algorithm}
     So the steps added here are the Accumulation of the squared Gradient, and the update. As mentioned in the short description before, since the Multiplikation and the Division are applied element wise, the update is done for every parameter and so every parameter that was previosuly large will have a reduced learning rate. The other algorithms for other adaptive learning rates are similar to this one, but with the steps I descibed before.
     \section{Feed-Forward Networks}
+
+    \subsection{Single-Neuron}
+
+    The output of  single Neuron with D input values $x_{i}$, weights $w_{i}$ and Bias b can be calculated as follows: $$a = \sigma(\sum_{i=1}^{D} w_{i}x_{i} + b)$$ where $\sigma$ is the activation function. The activation function is usually a non-linear function, such as the sigmoid function, the tanh function, or the ReLU function. The output of the neuron is then passed through the activation function to produce a non linear output. This is done, so that the Model can learn non-linear relationships between the input and the output, otherwise the Model would just be a linear regression.
+
+    \subsection{One Layer and multiple Neurons}
+    Often a layer is defined by Multiple Neruons, those are fed with the same input and combined in one layer. The output of such a layer can be calculated by $$a = \sigma(\sum_{i=1}^{D}w_{ji} \cdot x_{i} + b_{j})$$ The Compact form of this would be $a = \sigma(Wx + b)$ where $W$ is the Matrix of the weights and $b$ is the Bias.
+
+
+    \subsection{Multiple Layers}
+
+    Well, now that we have the defenition of one Layer down, why not do Multiple and thus create a neural Net. The output of a Neural Net with L layers can be calculated as follows: \begin{align*}
+        a^{(1)} &= \sigma(W^{(1)}x + b^{(1)}) \\
+        a^{(2)} &= \sigma(W^{(2)}a^{(1)} + b^{(2)}) \\
+        &\vdots \\
+        a^{(L)} &= f^{out} (W^{(L)}a^{(L-1)} + b^{(L)})
+    \end{align*}
+    Now we can consider writing this as a parameterized function
+  
+    \[
+\text{nn}_{\theta}(x) = f_{\text{out}} \left( W^{(N)} \cdot f^{(N-1)} \left( \ldots W^{(2)} \cdot f^{(1)} \left( W^{(1)} \cdot x + b^{(1)} \right) + b^{(2)} \ldots \right) + b^{(N)} \right)
+\]
+
+With the parameters:
+
+\[
+\theta = \left( (W^{(1)}, b^{(1)}), (W^{(2)}, b^{(2)}), \ldots, (W^{(N)}, b^{(N)}) \right)
+\]
+The f I use is just a placeholder for the activation function.
+
+How many layers exist is something we will define with the amount of layers being the amount of weight matrices used for Multiplication. 
+
+\subsection{Fun Facts for Linear Activation}
+Lets say we decide to use a linear function, lets show by its properties that it is not a good choice. 
+
+\[
+\text{nn}_{\theta}(x) = f_{\text{out}}\left(W^{(N)} \cdot f^{(N-1)}\left(\cdots f^{(2)}\left(W^{(2)} \cdot f^{(1)}\left(W^{(1)} \cdot x\right)\right)\right)\right)
+\]
+
+This can be simplified by grouping the weight matrices and activation functions:
+
+\[
+\text{nn}_{\theta}(x) = f_{\text{out}}\left(W^{(N)} \cdot f^{(N-1)}\left(\cdots f^{(2)}\left(W^{(2)} \cdot W^{(1)} \cdot f^{(1)}(x)\right)\right)\right)
+\]
+
+Combining weights into a single matrix \(W'\):
+
+\[
+\text{nn}_{\theta}(x) = f_{\text{out}}\left(W^{(N)} \cdots W^{(2)} \cdot W^{(1)} \cdot f^{(N-1)} \circ f^{(2)} \circ f^{(1)}(x)\right)
+\]
+
+Finally, we get:
+
+\[
+\text{nn}_{\theta}(x) = f_{\text{out}}\left(W' g(x)\right)
+\]
     
 \end{document}
