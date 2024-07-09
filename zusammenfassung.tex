@@ -477,5 +477,50 @@ Finally, we get:
 \[
 \text{nn}_{\theta}(x) = f_{\text{out}}\left(W' g(x)\right)
 \]
-    
-\end{document}
+
+\subsection{Activation Functions}
+The Activation Function is a non-linear function that is applied to the output of a neuron. As shown before we do need those non-linear Activation Functions to learn non-linear relationships. We can differentiate beween two Sorts of here, one being for Hidden Layers (So the Layers between the Input and the Output) 
+and the other for the Output Layer. Some of the Hidden Layer Activation Functions are:
+\begin{itemize}
+    \item Sigmoid: $\sigma(x) = \frac{1}{1 + e^{-x}}$
+    \item Tanh: $\tanh(x) = \frac{e^{x} - e^{-x}}{e^{x} + e^{-x}}$
+    \item ReLU: $ReLU(x) = \max(0,x)$
+    \item Hard Tanh: $HardTanh(x) = \max(-1, \min(1,x))$
+    \item Softplus: $Softplus(x) = \log(1 + e^{x})$
+    \item 
+\end{itemize}
+Some of the Output Layer Activation Functions are:
+\begin{itemize}
+    \item Linear: $f(x) = x$
+    \item Sigmoid: $\sigma(x) = \frac{1}{1 + e^{-x}}$
+    \item Softmax: $Softmax(x) = \frac{e^{x_{i}}}{\sum_{j} e^{x_{j}}}$
+\end{itemize}
+For the output Functions it is maybe important to note that you can use the Sigmoid Function for Binary Classification and the Softmax Function for Multiclass Classification. 
+
+\subsection{Symmetries in Parameter Space}
+There are many ways to achieve the same mapping of input to output values, even though the weight matrices and biases are different. One way is to permute the neurons in a layer, this leads to $M!$ equivalent solutions. Some activation functions are also point reflections, meaning that $f(x) = f(-x)$, this leads to $2^{M}$ equivalent solutions. 
+An Example for this would be $tanh(-x) = -tanh(x)$ If we combine those symmetries, we get $2^{M} \cdot M!$ equivalent solutions. This also there are as many equivalent local Minima. Which is ok though, as large networks local Minimas are usually quite good. 
+
+\subsection{Universal Approximation Theorem}
+This Theorem  states that if we have 2 layers, with enough hidden units, 
+we can approximate any Continuous Function.
+
+\section{Backpropagation}
+\subsection{Why do we need Backpropagation?}
+ As discussed in Chapter 5 we use gradient descent to minimize the error function. The error function is a function of the parameters of the model, and we need to compute the gradient of the error function with respect to the parameters in order to update them. 
+ Perhaps a rather simple approach would be to to calculate the Difference quotient being defined by $$\frac{\partial L}{\partial W_{ji}} = \frac{L(W_{ji} + \epsilon) - L(W_{ji} - \epsilon)}{2 \epsilon} + \underbrace{O(\epsilon^{2})}_{residual \ corrections}$$ This is a rather simple approach, but it is not very efficient, since you need to evaluate the Loss-Function twice for every Parameter. As this is why we use the Backpropagation Algorithm.
+
+ \subsection{Lets look at the Chain Rule}
+ For Backpropagation we first need to understand the chain rule. The chain rule in 1D is defined as $(g \circ f)' (x) = g' (f(x)) \cdot f'(x)$. This is also written as $\frac{x}{\partial x} g(f(x)) = \frac{\partial g}{\partial f} \frac{\partial f}{\partial x}$.
+ If our function depends on multiple variables, for example $x$ and $y$ then we can look at the partial derivatives. Meaning the partial derivative of $f(x,y) $ with respect to $x$ can be written as $\frac{\partial f}{\partial x}$. And with respect to $y$ as $\frac{\partial f}{\partial y}$. 
+
+ \newpage
+ \subsection{Direcional Derivative with the Chain Rule}
+ \begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/richtungsableitung.png}
+    \caption{}
+    \label{fig:Richtungsableitung}
+\end{figure}
+Ok lets say our goal is to calculate the partial derivative of f to s, on the left graph.  
+ \end{document}
