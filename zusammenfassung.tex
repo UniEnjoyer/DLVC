@@ -23,6 +23,7 @@
 \newcommand{\hatt}{\hat{\theta}_m}
 \usepackage{algorithm}
 \usepackage{algpseudocode}
+\usepackage{tikz}
 
 \title{Summary of the Deep Learning Lecture at the University of Bonn}
 
@@ -522,5 +523,105 @@ we can approximate any Continuous Function.
     \caption{}
     \label{fig:Richtungsableitung}
 \end{figure}
-Ok lets say our goal is to calculate the partial derivative of f to s, on the left graph.  
+Ok lets say our goal is to calculate the partial derivative of f to s, on the left graph.  Well to analyze we take the chain rule, meaning we can express $f$ as $f(x(s),y(s))$ and can then write the partial derivative of $f$ with respect to $s$ so $\frac{\partial f}{\partial s} = \frac{\partial f}{x} \frac{\partial x}{\partial s} + \frac{\partial f}{\partial y} \frac{\partial y}{\partial s}$. This is just the chain rule applied to the partial derivatives.
+So if more Dimensions follow, we can use the same pattern. 
+\begin{center}
+    
+
+\begin{tikzpicture}
+    % Nodes
+    \node (s) at (0,0) {$s$};
+    \node (x) at (3,2) {$x(s)$};
+    \node (y) at (3,0) {$y(s)$};
+    \node (z) at (3,-2) {$z(s)$};
+    \node (f) at (6,0) {$f(x,y,z)$};
+    
+    % Arrows
+    \draw[->] (s) -- (x) node[midway, above, sloped] {$\frac{\partial x}{\partial s}$};
+    \draw[->] (s) -- (y) node[midway, above] {$\frac{\partial y}{\partial s}$};
+    \draw[->] (s) -- (z) node[midway, above, sloped] {$\frac{\partial z}{\partial s}$};
+    \draw[->] (x) -- (f) node[midway, above, sloped] {$\frac{\partial f}{\partial x}$};
+    \draw[->] (z) -- (f) node[midway, above, sloped] {$\frac{\partial f}{\partial z}$};
+    
+    % Equation
+    \node at (0, -4) {
+    \begin{minipage}{\textwidth}
+    \begin{equation*}
+        \frac{\partial f}{\partial s} = \frac{\partial f}{\partial x} \frac{\partial x}{\partial s} + \frac{\partial f}{\partial y} \frac{\partial y}{\partial s} + \frac{\partial f}{\partial z} \frac{\partial z}{\partial s}
+    \end{equation*}
+    \end{minipage}
+    };
+    
+\end{tikzpicture}
+\end{center}
+This concept can easily be expanded to more functions, lets say we also have $g$ we then need to calculate $g$ in respect to $s$, to do this we can say $$\frac{g}{\partial s} = \frac{\partial g}{\partial f} \frac{\partial f}{\partial s}$$  Since I had trouble understanding it, lets make a quick example for $g$ and $f$. 
+If g and f are dependent on one variable s. 
+\[
+f(s) = s^2
+\]
+\[
+g(f) = f + 1
+\]
+
+We want to find \(\frac{\partial g}{\partial s}\).
+
+
+1. Compute \(\frac{\partial f}{\partial s}\):
+\[
+\frac{\partial f}{\partial s} = \frac{\partial (s^2)}{\partial s} = 2s
+\]
+
+2. Compute \(\frac{\partial g}{\partial f}\):
+\[
+\frac{\partial g}{\partial f} = \frac{\partial (f + 1)}{\partial f} = 1
+\]
+
+3. Apply the chain rule:
+\[
+\frac{\partial g}{\partial s} = \frac{\partial g}{\partial f} \cdot \frac{\partial f}{\partial s} = 1 \cdot 2s = 2s
+\]
+
+Thus, the derivative of \(g\) with respect to \(s\) is:
+\[
+\frac{\partial g}{\partial s} = 2s
+\]
+With more variables and more functions this becomes increasingly annoying to write down, which is why it looks so complicated in the Slides. But with Neural Nets we typically have many layers, thus making these "graphs" unsuitable for the task.
+Now this where Backpropagation finally comes in handy.
+\subsection{Backpropagation Algorithm Intuitively}
+Well lets talk about Backpropagation in a more intuitiv manner before discussing the calculus involved. We first run the forward pass so we pass in Training examples and then calculate the output of the Neural Net. If we think of classifiying a number for example, this will most likely not be the correct output. So we calculate the error of that output thus giving us the loss, so how far off our predictions are from the actual values.
+Ok now we can apply the backward pass. We basically go back through the layers and check where mistakes were made. Thus we calculate how much each weight in the network contributed to the error. So now we can adjust the weights to minimize the loss in the Neural Net. We can do this over and over again for each Training example, until the loss is minimized. Chapter 3 of the 3B1B Video Series on Neural Networks might be worth to check out. 
+
+
+\subsection{Backpropagation Algorithm Formally}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/3b1b_backpropagation.png}
+    \caption{3B1B Backpropagation}
+    \label{fig:Backpropagation}
+\end{figure}
+
+Ok lets first look at simple example and then expaldn it, lets say we only have 1 Neuron per layer now lets introduce some notations, as shown in the image. Lets focus on the connection of the last 2 Neurons first. $a^{L}$ being the activation of the last neuron, and $a^{(L-1)}$ being the activation of the previous neuron. So how do we determine the last activation well as we discussed it is determined by a weight $w^{(L)}$ the previous action $a^{(L-1)}$ and a bias $a=b^{(L)}$ and then an activation function. We also dicussed that we define a name for that here being $z^{(L)} = w^{(L)} \cdot a^{(L-1)} + b^{(L)}$ and $a^{(L)} = \sigma(z^{(L)})$. 
+Now that we computed a as shown in the image we can compute the cost with a target value $y$ and a cost function $C$ This can be expanded to substituting the $a^{L-1}$ function as well of course. But lets focus on the last layer for now. The first thing that might be interesting here is how changes in the weight effect our cost function. In mathematical Terms we are 
+interested in the derivative of the cost function with respect to the weight. $ \frac{\partial C_{0}}{\partial W^{(L)}}$ But how do we get there again with intuition the chain rule makes perfect sense here because what is important for that ratio to know. Well first $w^{(L)}$ effects $z^{(L)}$ which in turn effects $a^{(L)}$ which in turn effects the cost function. 
+So lets write this down mathematically using the chain rule! 
+
+\[
+\frac{\partial C_{0}}{\partial W^{(L)}} = \underbrace{\frac{\partial z^{(L)}}{\partial w^{(L)}}}_{\shortstack{effect of \( w \) \\ with respect to \( z \)}} \underbrace{\frac{\partial a^{(L)}}{\partial z^{(L)}}}_{\shortstack{now that \( z \) changed \\ let's calculate the effect \\ that has on \( a \)}} \underbrace{\frac{\partial C_{0}}{\partial a^{(L)}}}_{\shortstack{effect of \( a \) \\ on the cost \( C_{0} \)}}
+\]
+Lets break down the terms now. So first the effect of a on the term C is just $2(a^{(L)} - y)$ The derivative of the activation function is just the derivative of the activation function. And the derivative of $z$ with respect to $w$ is just $a^{(L-1)}$. Because this relation just depends on ow strong the previous neuron was activated. Now this is just for a single training example if we wanted to compute this for 
+all the Training examples we would compute an average meaning $$\frac{\partial C}{\partial W^{(L)}} = \frac{1}{n} \sum_{k = 0}^{n-1} \frac{\partial C_{k}}{\partial W^{(L)}}$$ Now we have succesfully computed one component of the gradient vector $C$ We would now need to do the same for the bias and the previous layers. For the bias the computation 
+is almost the same, because we can just swap out every w for a b. But if we consider the derivative of $\frac{\partial z^{(L)}}{\partial b^{(L)}}$ we see that this is just 1. Because obviosuly a change in the Bias would result in a change of the activation exactly equivalent to the change in the Bias. Ok now lets look at how we go backward. The sensitivity of the cost function with respect to the activation of the last layer. In the formula it would look like this: \[ \frac{\partial C_{0}}{\partial a^{(L-1)}} = \frac{\partial z^{(L)}}{\partial a^{(L-1)}} \dots \] which in turn would just be the weight. Now since we kept track 
+of this we can trace back how sensitive the cost function is to the activation of the previous layer. This is the basic idea of Backpropagation. Now this can be expanded to multiple neurons, however the Idea stays the same. One thing that changes is the cost function with respect to the activation of the previous layer. Lets introduce a new indeci to keep track which neuron talking about lets call it activation of the kth neuron in the L-1 layer with $a_k^{(L-1)}$ 
+thus the cost function with respect to the activation of the kth neuron in the L-1 layer would be $\frac{\partial C_{0}}{\partial a_k^{(L-1)}}$ This can be computed by the chain rule as well, but we need to consider the entire layer L so we compute the sum which leads to the following equation $$ \frac{\partial C_{0}}{\partial a_k^{(L-1)}} = \sum_{j=0}^{n_{L}-1} \frac{\partial z_{j}^{(L)}}{\partial a_k^{(L-1)}} \frac{\partial a_j^{(L)}}{\partial z_j^{(L)}} \frac{\partial C_{0}}{\partial a_j^{(L)}}$$ 
+I personally found the slides to be rather confusing that is why i mainly used 3B1B 4th video of his Neural Network Series to explain this.
+\subsection{TODO explain this with jacobi matrices (i think before should work to understand the concept though)}
+
+\section{Regularization}
+
+
+
+
+
+
  \end{document}
