@@ -24,6 +24,7 @@
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 \usepackage{tikz}
+\usepackage{hyperref}
 
 \title{Summary of the Deep Learning Lecture at the University of Bonn}
 
@@ -171,7 +172,7 @@ The Mean Squared Error is a measure of how well an Estimator performs. This was 
 The Mean Squared Error can be decomposed into the Variance of the Estimator and the Bias of the Estimator. If the Mean Squared Error is low, the Estimator is good. The Goal of an Estimator is to minimize the Mean Squared Error.
 
 \subsection{Bias-Variance Tradeoff}
-
+\label{sec:Bias-Variance Tradeoff}
 \begin{figure}[h]
     \centering
     \includegraphics[width=0.8\textwidth]{images/bias_variance_tradeoff.png}
@@ -619,9 +620,107 @@ I personally found the slides to be rather confusing that is why i mainly used 3
 
 \section{Regularization}
 
+\subsection{Gradient Clipping}
+
+Sometimes Deep Neural Networks, have the  issue of exploding Gradients. This Problem occurs if Multiplying large weights. Visually this is explodingly steep parts in a Loss Function. The Problem is that with our current approach the Parameters of the Model would be updated by a large amount, making our previous progress in Optimizing useless. 
+This is why we introduce Gradient Clipping. This is done by setting a Threshold for the Gradient. Here 2 Methods are common, the first one is to clip the Gradient if an Entry of the Gradient exeeds a certain Threshold, this is refered to as Value-Clipping. The second one would be Norm-Clipping if the Gradient exceeds a 
+certain Norm, the Gradient is scaled down to the Threshold, this is refered to as Norm-Clipping.
+
+\subsection{Parameter Initialization}
+
+\subsubsection{Very Small Weights}
+Lets talk about what happens with certain weights, starting with small weights. If the weights are too small, the Network might collaps to a linear Modell, which as previosuly discussed is not what we want. If we use the Sigmoid Activation Function and apply it to $W \cdot x$ with W being very small the Function becomes linear.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/sigmoid_small_weights.png}
+    \label{fig:Sigmod Small weights}
+\end{figure}
+\newpage
+\subsubsection{Very Large Weights}
+Problems also arise with Very Large weights. With very large weights the Sigmoid Function becomes very steep, which makes the Gradient very small. This is a problem because the Gradient Descent would be very slow.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/sigmoid_large_weights.png}
+    \caption{Sigmod with Large Weights}
+    \label{fig:Sigmod Large weights}
+\end{figure}
+
+\subsection{Scalng the Input Values}
+The range of Inputs determines the range of values for the Weights, thus making it important to scale the Input Values, because as we have seen this determines the quality of the Neural Net. A good rule of thumb is to scale the Inputs to have a mean of 0 and a standard deviation of 1. 
+\subsection{Weight Initialization}
+Usually the weights are initialized randomly with small values. So the network starts linear, but this will not remain the case when the weights are updated during training. Some might think it would make sense to initialize the weights with 0, but this would be problematic with the simplest reason being that 
+the input for second layer would be the same for all Nodes, the output would be the same as well and would then be multiplied by the same weights. This would lead to the same output for all Nodes in the second layer, this goes on until the output layer, where it will still be zero.  Another reason would be that backpropagation would not
+work, as the weights will be multiplied by a value determined by backpropagation but since the weights are zero they will remain zero, making our whole progress useless. 
+
+\subsection{Parameter Initialization}
+We want to initialize our parameter so that the Eigenvalues of the Jacobi Matrix and the Weights are close to 1. If the Eigenvalues are larger than 1, the Gradient will explode, if they are smaller than 1, the Gradient will vanish. This means that for the Jacobi Matrix of the actiavtion function with $J_{f^{(i)}}(a^{(i)})$ we want 
+the derivative of the activation function to be close to 1. This is different from activation activation function to activation function though.  \\ 
+\begin{itemize}
+    \item Input Signals are usually scaled to have a mean of 0 and a standard deviation of 1. 
+    \item Since the standard deviation of the output of a neuron is  1, the weights should be initialized and multiplied $\frac{1}{\sqrt{n}}$ with n being the number of inputs. This ensures ensures that the variance of the weighted sum remains 1, because the deviation of the weights is $\sigma^{2}$.
+    \item The bias changes the mean of the output, usually it remains $0$ sometimes it makes sense to initialize it differently however. An example for that would be ReLU, where the bias should be initialized with a small positive value, so values lower than 0 are passed through the ReLU function.
+\end{itemize}
+\subsection{Scaling of the Weights as an Hyperparameter}
+If we have enough computational power, we can use the scaling of the weights as a hyperparameter. This means that we can try different values for the scaling of the weights and see which one works best we can just experiment on Mini Batches though and check wether the Hidden Units are getting lower each layer. 
+
+\subsection{Overfitting and Underfitting quick comeback in Context}
+While Input and Output are usually fixed, the number of Hidden Units is a Capacity Parameter, we need to figure out. If we use too many neurons, the network will overfit, if we use too few neurons, the network will underfit. Deep Neural Networks are usually volotile to Overfitting, due to its high capacity. To prevent that Regularization 
+is used.
+\subsection{Definition of Regularization}
+Regularization can be defined as any modification of a learning algorithm with the purpose of reducing the generalization error without significantly increasing the training error.
+Common strategies to achieve this are adding more Terms to the Loss and Extra Constrains to the Modelparameters. Those strategies can use prior knowledge about the problem, but can also try to find a simple model for good generalization.
+\subsection{Regularization in Deep Learning}
+Most Regularization strategies want to find a good Bias Varianz Tradeoff. Which we have also talked about at the beginning. 
+
+\subsection{Parameter Norm Penalties}
+One way too force our Model to have a certain complexity is a so called Penality Term. This Term is added to the Loss Function. The Term is controlled by a Hyperparameter $\alpha$ and the Norm of the Parameters.   
+\[
+\tilde{L}(\theta; X, y) = \underbrace{L(\theta; X, y)}_{\text{Original Loss Function}} + \underbrace{\alpha \cdot \Omega(\theta)}_{\text{Penalty Term}}
+\]
+
+The Parameter Norm Penalty usually only applies to large Values in the weights, but not in the Biases, since the Bias only Influences a single Variable, meaning it needs little Data to be learned. If we would Introduce a Penalty Term for the Bias, underfitting becomes our Problem. 
+
+\subsection{L2 Regularization}
+A common and simple approach is the L2 Regularization. The L2 Regularization is defined as the sum of the squares of the weights. 
+\[
+\tilde{L}(\theta; X, y) = \underbrace{L(\theta; X, y)}_{\text{Original Loss Function}} + \underbrace{\alpha \frac{1}{2} ||w||^{2} }_{\text{L2 Norm Penalty Term}}
+\]
+This is also known as weight decay, because the weights are decaying to zero. In the Context of Backpropagation this means that the Gradient of the Penalty Term is added to the Gradient of the Loss Function. 
+\subsubsection{TODO There is an intuition slide in the slides, which i cant explain well}
+\subsection{L1 Regularization}
+We have had the L2 Regularization, now lets talk about the L1 Regularization. The L1 Regularization is defined as the sum of the absolute values of the weights. For the loos function this means
+The loss Function now is defined as:
+\[
+\tilde{L}(w; X, y) = L(w; X, y) + \alpha \cdot \|w\|_1
+\]
+
+and the Gradient:
+\[
+\nabla_w \tilde{L}(w; X, y) = \nabla_w L(w; X, y) + \alpha \cdot \text{sign}(w)
+\]
+
+\subsection{Sparse Networks}
+The advantage of L1 Regularization is that it leads to sparse Networks. This means that the Network has many weights that are zero, so not Unit every unit in one layer is connected to every unit in another layer. This is useful because it saves computation time. 
+\newpage
+\subsection{Representation Sparsity}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.99\textwidth]{images/sparsity.png}
+    \caption{Different Sparsity}
+    \label{fig:Sparsity}
+\end{figure}
+As visible in the figure in the Second way of writing the Vector the Vector multiply just forces Values to be sparse, since the Vector has Zero Values, while the weight Sparsity sets values of the Martix to $0$. 
+
+\subsection{Regularization as Maximum A Posteriori Estimation}
+The L1 and L2 Regularization can also be interpreted as Maximum A Posteriori Estimation. This means that we are looking for the most probable parameters given the data. The L2 Regularization can be interpreted as a Gaussian Prior, while the L1 Regularization can be interpreted as a Laplace Prior. This is not carried out in the slides, but I guess if you leave out the 
+constant erm of the gaus prior we see that $/alpha$ is equivalent to $\frac{1}{2 \sigma^{2}}$. This surely works pretty similar for the Laplace distrubution.
+
+\section{Reduction of Modelcapacity}
+\subsection{Early Stopping}
+One way to reduce the Modelcapacity is to stop the training early. This is done by monitoring the Validation Set and stopping the training when the Validation Error starts to increase. This is done because the Model is starting to overfit. The problem is that the Model might overfit faster, due to it recognizing patterns fast it shouldnt have by training with the Validation Set.
 
 
-
-
-
- \end{document}
+\end{document}
+ 
