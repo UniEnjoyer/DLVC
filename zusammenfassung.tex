@@ -434,7 +434,7 @@ This basically just means that we can adapt the learning rate to the Parameters.
 
     \subsection{Multiple Layers}
 
-    Well, now that we have the defenition of one Layer down, why not do Multiple and thus create a neural Net. The output of a Neural Net with L layers can be calculated as follows: \begin{align*}
+    Well, now that we have the definition of one Layer down, why not do Multiple and thus create a neural Net. The output of a Neural Net with L layers can be calculated as follows: \begin{align*}
         a^{(1)} &= \sigma(W^{(1)}x + b^{(1)}) \\
         a^{(2)} &= \sigma(W^{(2)}a^{(1)} + b^{(2)}) \\
         &\vdots \\
@@ -715,12 +715,166 @@ As visible in the figure in the Second way of writing the Vector the Vector mult
 
 \subsection{Regularization as Maximum A Posteriori Estimation}
 The L1 and L2 Regularization can also be interpreted as Maximum A Posteriori Estimation. This means that we are looking for the most probable parameters given the data. The L2 Regularization can be interpreted as a Gaussian Prior, while the L1 Regularization can be interpreted as a Laplace Prior. This is not carried out in the slides, but I guess if you leave out the 
-constant erm of the gaus prior we see that $/alpha$ is equivalent to $\frac{1}{2 \sigma^{2}}$. This surely works pretty similar for the Laplace distrubution.
+constant erm of the gaus prior we see that $\alpha$ is equivalent to $\frac{1}{2 \sigma^{2}}$. This surely works pretty similar for the Laplace distrubution.
 
 \section{Reduction of Modelcapacity}
 \subsection{Early Stopping}
-One way to reduce the Modelcapacity is to stop the training early. This is done by monitoring the Validation Set and stopping the training when the Validation Error starts to increase. This is done because the Model is starting to overfit. The problem is that the Model might overfit faster, due to it recognizing patterns fast it shouldnt have by training with the Validation Set.
+One way to reduce the Modelcapacity is to stop the training early. This is done by monitoring the Validation Set and stopping the training when the Validation Error starts to increase. This is done because the Model is starting to overfit. The problem is that the Model might overfit faster, due to it recognizing patterns fast, it shouldnt have by training with the Validation Set.
 
+\subsection{Exponential Moving Average}
+We have learned about SGD already, here and issue might be the noise from the random selection of training data, this could lead to instable updating, therefore we introduce EMA which is defined as $$\theta_{EMA,t+1} = (1-\lambda) \theta_{EMA,t} + \lambda \theta_{t}$$ If $\lambda = 1$ then the EMA is just the parameter itself. If $\lambda = 0$ then the EMA is just the previous EMA. 
+
+\subsection{Parameter Sharing}
+In Regularization we assumed that we know, what the Model should look like, and thus can know which value will make sense and nudge the model in that direction, for example 0. This is not always the case, but sometimes we have knowldege the knowledge that for example two Models are close together. 
+So lets say we have a Model A and a Model B with their respective parameters, we could apply a Parameter Penality, to force the Models to be similar, since we know they are. This would look like this $$ \Omega (\theta_{A}, \theta_{B}) = ||\theta_{A} - \theta_{B}||^{2}_{2} $$ 
+
+We could also force the Parameters to be equivalent, which is done by Parameter Sharing. By Sharing parameters we essenstially tie weights together, meaning updates to the weights from one part of the Model will directly effect the others. If we think in text of Convolutional Neural Networks, we can think of the same filter being applied to different parts of the image. (This will be discussed later)
+
+\subsection{Data Augmentation}
+Data Augmentation is a technique to increase the size of the training set. This is done by applying transformations to the training data. (The one Python task from the practical Worksheet with the CIFAR Dataset)
+\subsection{Injecting Noise}
+Well we use Data Augmentation to make the Data a bit noisy so that the Neural Net is able to deal with Noise. We can also add Noice to hidden units. 
+We can even add noice to the weights. 
+\subsection{Noisy Outputs}
+We can make the Outputs Noisy as well to make the Model robust to the Training Label being incorrect. This is done by saying our training label is just correct with a certain probability $1 - \epsilon$ 
+
+\section{Bagging and Dropout}
+\subsection{Bagging}
+Bagging comes from the term Bootstrap Aggregating. This is basically the Introduction of Democracy. We train several models separately and then average the results, so every Model has the same vote in the final decision. This can be written as $$ p_{bagging} = \frac{1}{k} \sum_{i=1}^{k} p_{i}(y|x)$$ 
+
+\subsection{Expected Error of Bagging}
+If the test samples all do the same error, the expected error of the bagging is the same as the expected error of the single model. If the test samples do different errors, the expected error of the bagging is smaller than the expected error of the single model. 
+
+\subsection{Creating the Models for Bagging}
+The Models for Bagging are created by training the Model on different subsets of the training data. This is done by sampling the training data with replacement. This means that the same sample can be selected multiple times. This quite computationaly expensive, therefore we take a closer look at Dropout.
+\subsection{Dropout}
+Dropout is also to reduce complexity and overfitting, but it is an efficient way of performing Bagging, it just omits data during training. This is done by setting the output of a neuron to 0 with a certain probability. This is done for every neuron in the network. It just trains ensembles of all possible sub networks.(An ensemble refers to a combination of multiple models to solve a particular problem.) TODO why is this more efficient?
+
+\subsection{Inference in Dropout}
+First talk about how we calculate the Dropout. The Dropout $p_dropout$ is calculated by summing over all binary masks $\mu$ averaging over all possible sub networks, which can be formed by applying different binary masks. Now this is not computationally feasible, so we approximate this by randomly sampling binary masks, which turns out to be quite a good approximation. 
+\subsubsection{Weight Scaling Inference Rule}
+Ok so during Dropout we set the Neurons to zero with a certain Probabiliy $p$, as discussed before. But now we would like to use the entire Network, so we use something called Weight Scaling. During Inference we scale the Network Weights to $1-p$, this scaling accounts for the fact that during training we set the Neurons to zero with a certain probability.
+
+\subsection{Bagging vs Dropout}
+One major difference is that Bagging trains every model independently, while dropouts Subnetworks share Parameters, thus making it possible to compute even regarding the exponential number of possible Models. In Bagging every single Model is trained until converging this is not the case for Dropout. Due to the sheer Size of Dropout, we just train a fraction of the 
+possible Models, then sharing is caring comes into play and we share the Parameters across the Models. All differences asside both methods are quite similar as Dropout Subnetworks can also be seen as Subsets of the original Network, which also are created when performing Bagging.
+
+\subsection{Effectivity of Dropout}
+Dropout is very effective in Regularization, and can be combined with other Regularization Techniques, we were Previosuly discussed. Dropout computes a Binary Mask per Training Sample in $O(n)$, and needs $O(n)$ Memory, to store the Binary Mask for Backpropagation. Weight Scaling is applied once for all Modelweights, thus making it Computationally irrelevant for Dropout. 
+For Dropout it is important to note that we need large Models, since we reduce the Capacity of the Network by Dropout.
+
+\subsection{Dropout in the Context of Noise Augmentation}
+We used and learned about Augmentation, some might have noticed that Dropout adds Noise to the Network, as we loose out on some Information, and the Network is forced to learn with missing Information. 
+
+\section{Basics of Convolutions}
+NOTE: The following Introcution to Groups is brought to you by chatgpt and the slides as i am too lazy to Tex this. \\\\
+Let \( G \) be a set and \( \cdot : G \times G \rightarrow G \) a binary operation. Then \((G, \cdot)\) is a group if:
+\begin{enumerate}
+    \item There exists an identity element \( e \in G \) such that \(\forall a \in G: e \cdot a = a \cdot e = a \).
+    \item Every element \( a \in G \) has an inverse element \( a^{-1} \in G \) such that \( a \cdot a^{-1} = a^{-1} \cdot a = e \).
+    \item Associativity holds: \(\forall a, b, c \in G : (a \cdot b) \cdot c = a \cdot (b \cdot c)\).
+\end{enumerate}
+
+\section*{Group Operation}
+
+Let \((G, \cdot)\) be a group and \( X \) a set. Then \( \triangleright : G \times X \rightarrow X \) is a (left) group operation if:
+\begin{enumerate}
+    \item Identity: \(\forall x \in X : e \triangleright x = x\), where \( e \) is the identity element of \( G \).
+    \item Compatibility: \(\forall a, b \in G, x \in X : (a \cdot b) \triangleright x = a \triangleright (b \triangleright x)\).
+\end{enumerate}
+
+\section*{Examples: Group Operations}
+
+Transformations can be elegantly described using group operations. Let \( X = [0, 1]^{n \times n} \) be the space of images of size \( n \times n \).
+
+\begin{enumerate}
+    \item \( G = \{ \text{Id}, \text{Ref}_y \} \) forms a group containing the identity element (Id) and a reflection over the y-axis (Ref\(_y\)). That is, \(\text{Id} \triangleright x = x\) and \(\text{Ref}_y \triangleright x\) corresponds to the mirrored image of \( x \).
+    \item \( G = \{ \text{Id}, \text{Rot}_{90}, \text{Rot}_{180}, \text{Rot}_{270} \} \) forms a group containing all 90° rotations of the image. What are the inverse elements of \(\text{Rot}_{90}\), \(\text{Rot}_{180}\), and \(\text{Rot}_{270}\)?
+    \item \( G = \{ \text{Rot}_{\theta} : \theta \in \mathbb{R} \} \) forms a group containing all rotations. What problems could arise for a discrete and \( n \)-limited image space?
+    \item \( G = \{ T(x, y) : x, y \in \mathbb{R} \} \) forms a group containing all translations by \( x, y \). What problems could arise for a discrete and \( n \)-limited image space?
+    \item \( G = S(M) \) is the group of all permutations of a set \( M \). This group plays an important role, for example, in point cloud data.
+\end{enumerate}
+
+\section*{Equivariance and Invariance}
+
+Let \( f : X \rightarrow Y \) be a mapping (for example, a neural network), \((G, \cdot)\) a group, and \(\triangleright : G \times X \rightarrow X\) and \(\square : G \times Y \rightarrow Y\) group operations on \( X \) and \( Y \) respectively.
+
+\( f \) is called equivariant with respect to \( G \) if:
+\[
+\forall g \in G, x \in X : f(g \triangleright x) = g \square f(x)
+\]
+
+\( f \) is called invariant with respect to \( G \) if:
+\[
+\forall g \in G, x \in X : f(g \triangleright x) = f(x)
+\]
+
+\subsection{Convolution/Cross Correlation}
+Ok now after the gpt Introduction to Groups, lets talk about Convolutions and Cross Correlations. 
+
+For this I recommend the 3B1B Video on Convolutions, but lets try to explain it here as well. To quote the Video "The formulaic definition ... can look quite Intemidating".
+
+But lets start slow and easy, imagine we have two lists of numbers (1,2,3) (4,5,6) and we can want to calculate the Convolution here. We would flip around list 2. So we would have (6,5,4) and then we would slide it over list 1. We would then multiply the corresponding elements and sum them up. So we have $(4 \cdot 1, 1 \cdot 5 + 2 \cdot 4, 1 \cdot 6 + 2 \cdot 5 + 3 \cdot 4, 
+2 \cdot 6 + 3 \cdot 5, 3 \cdot 6) = (4, 13, 28, 27, 18)$. This is the Convolution of the two lists. Ok now lets look at the Formula.
+The convolution of a function \( x(t) \) with a function \( y(t) \) is defined as:
+
+\[
+(x * y)(t) = \int_{-\infty}^{\infty} x(\tau) y(t - \tau) \, d\tau = \int_{-\infty}^{\infty} x(t - \tau) y(\tau) \, d\tau
+\]
+ 
+Now the $\tau $ is basicallty the flip to our list 2, just to give some intuition to the integral, considering our example the last equivalence in the definition makes sense as well, we could also reverse the first list and slide it over the second list, to achieve the same result. Here we can introduce the cross correlation, 
+which is defined as: 
+\[
+(x \star y)(t) = \int_{-\infty}^{\infty} x(\tau) y(t + \tau) \, d\tau = \int_{-\infty}^{\infty} x(\tau  -t) y(\tau) \, d\tau = (x(- \tau ) * y(\tau))(t)
+\]
+This would be like multiplying the first list with the second list, but not flipping the second list, which would be the same as flipping the first list and sliding it over the second list. 
+Ok lets visualize this with an example from the Slides. 
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/convolution.png}
+    \caption{Convolution}
+    \label{fig:Convolution and Cross Correlation}
+\end{figure}
+Ok lets break down Convolution first, lets take the function y and flip like we have done to the list, and then we slide it over function x. Except the script image is explaining it with the second equivalence thus we flip x and slide it over y. The peak of the new function is basically in our example of the lists, where both lists are multiplied and added together. So imagine the first function coming closer to y and then we start multiplying
+the corresponding components, so the value begins to increase and reaches its peak when both function overlap completly and then it decreases again. Lets have a closer look at the Slope of the Convolution here. The Slope is rather steep at the start and then decreases again, this is because the start of function y is steeper (imagine a larger number in the list)
+decreasing it is not as steep, since the numbers are smalle for y. Now lets have a look at cross correlation, we just slide x over y, so the slope is not as steep at the start because the smaller part of x slides over y first. To put all of this into the two lists context, we can imagine the list y being (6,5,4) so the Bump at the start is our largest value at the start, try to think about this and watch the 3B1B Video. 
+This example makes everyhting more intuitiv for me personally, how ever after reading this I do see if the explanation is a bit messy and all over the place, sorry for that.
+
+\subsection*{Important Properties of  and Cross Correlation}
+
+\begin{itemize}
+    \item \textbf{Commutative:} \( x * y = y * x \)
+    \item \textbf{Associative:} \( x * (y * z) = (x * y) * z \)
+    \item \textbf{Distributive:} \( x * (y + z) = x * y + x * z \)
+    \item \textbf{Convolution Theorem:} \( \mathcal{F}(x * y) = (2\pi)^{n/2} \mathcal{F}(x) \cdot \mathcal{F}(y) \), where
+    \[
+    \mathcal{F}(y)(f) = (2\pi)^{-n/2} \int_{\mathbb{R}^n} y(t) e^{-i f t} \, dt
+    \]
+    is the Fourier transform.
+    \item Equivariant with respect to translations of \( x \) and \( y \).
+\end{itemize}
+
+\subsection*{Important Properties of Cross-Correlation}
+
+\begin{itemize}
+    \item \textbf{Distributive:} \( x \star (y + z) = x \star y + x \star z \)
+    \item Equivariant with respect to translations of \( y \).
+\end{itemize}
+\subsection{Discrete Convolution/Cross Correlation}
+With all my brambling about the lists, discrete Convolution should be rather intuitiv, we just sum up the products of the corresponding elements. The Discrete Convolution is defined as:
+\[
+(x * y)[n] = \sum_{k \in \mathbb{Z}^{n}} x[k] y[n - k] = \sum_{k \in \mathbb{Z}^{n}} x[n - k] y[k]  
+\]
+The Discrete Cross Correlation is defined as:
+\[
+(x \star y)[n] = \sum_{k \in \mathbb{Z}^{n}} x[k] y[n + k] = \sum_{k \in \mathbb{Z}^{n}} x[k-n] y[k]
+\]
+
+Here if you go over the list and stay within the bounds of the list that k provides, you are even good to go to see this as the formula from the first example. 
+
+Ok but all of this kind of begs the question of why, why would we do that? In Visual Computing we often have images we refer here as a signal which is just a matrix of Pixel values(Probably a vector containing RGB or something), and we then want to apply a filter to the image this filter, which would be our function y is called a kernel. The Kernel is just a Small Matrix, which we slide over the image(yes like the 2 list of numbers) 
+and then we apply the Convolution. (To get great visuals on this, i recommend the 3B1B Video on Convolutions). 
+
+\section{Convolutional Layers}
 
 \end{document}
- 
