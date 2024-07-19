@@ -934,4 +934,25 @@ This is why we need the 4th Dimension.
 This is the same process we have been discussing, for Convolution Layers, but in reverse. All the Concepts we learned can be applied to those as well in reverse. This is usefull for Decoders and Genrative Models.
 
 \section{Batch Normalization}
+We often have the issue that the input to the Activation Function is not centered around 0, this can lead to exploding or vanishing gradients. Now we learn about Batch Normalization in order to prevent that Problem. Batch Normalization can be applied to the Input but also the hidden layers. Ok if we take a look at the equation for Batch Normalization we see that we subtract the mean and divide by the standard deviation.
+from a Matrix H which contains the activations for a Mini Batch. So $H' = \frac{H - \mu}{\sigma}$ So what does that do, well substracting the mean we center the activations around 0, and dividing by the standard deviation we scale the activations to have a standard deviation of 1. Forcing the activations to have a mean of 0 and a standard deviation of 1. It should be noted that the standard deviation also adds a really small number to prevent divison by 0. 
+
+\subsection{Why is this usefull?}
+If we consider activation Functions, such as the Sigmoid Function, if we input a very large number for exampe we get to a point where the function is almost flat, this means that the gradient is almost 0. This of course is problematic, thus normalizing makes perfect sense. In the Context of Inference, we need to keep track of a running average if the mean and standard deviation, 
+so we can apply some kind of normalization to the test data.
+
+\subsection{How we do it in Practice}
+To my understanding this means that the Data might be more complex for us to adjust leave it normalized around zero, so we need to make it learn where it wants to be. This is done by introducing two new parameters, $\gamma$ and $\beta$. $\gamma$ is used to scale the normalized value and $\beta$ is used to shift the normalized value. Both of those are learned during training, we can always leave out the Bias, since $
+\beta$ is pretty much the same but a bit more flexible. So now we calculate $\gamma \cdot H' + \beta$
+
+\section{Convolutional Neural Networks Architectures}
+TODO if someones to list them all here, too lazy for that, would be a bit of a prank if this comes in the exam.
+
+\section{CNN visualization}
+Probably makes more sense to read the slides, a lot of images. Would be weird to quizz on this, as it was never remotely part of the tasks or the practicals, as far as i can remember. 
+
+\section{Transfer Learning}
+We can do transfer learning if we for example have a classifier for cats, and now want to classify dogs. We cann use features of the cat network, to classify dogs. We could for example initialize the weights of the dog network with the weights of the cat network, this would probably give us a good starting point for gradient descent. 
+
+
 \end{document}
