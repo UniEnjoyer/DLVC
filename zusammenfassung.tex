@@ -874,7 +874,64 @@ Here if you go over the list and stay within the bounds of the list that k provi
 
 Ok but all of this kind of begs the question of why, why would we do that? In Visual Computing we often have images we refer here as a signal which is just a matrix of Pixel values(Probably a vector containing RGB or something), and we then want to apply a filter to the image this filter, which would be our function y is called a kernel. The Kernel is just a Small Matrix, which we slide over the image(yes like the 2 list of numbers) 
 and then we apply the Convolution. (To get great visuals on this, i recommend the 3B1B Video on Convolutions). 
-
+\newpage
 \section{Convolutional Layers}
+\subsection{Convolutional Layers in 1D}
+We are going to use cross correlation now, lets say we have an Input Signal y, with the Kernel x(which is as mentioned before just a matrix) we are going to calculate the cross correlation $s = x \star y$. After calculating the cross correlation we apply an Activation Function to the result. This is the basic idea of a Convolutional Layer. It is also important to mention that we use weight sharing 
+meaning we apply the same Kernels to every for example part of the image. This reduces the amount of Parameters when compared to fully connected layers. Also the connection are less, because we only apply our Kernels to a small part of the image.  This allows for the Sparsity discussed previously in connection to L1 Regularization.  An example of this can be seen in the following figure from the Slides.
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/convolutionalvsfullyconnected.png}
+    \caption{Convolutional Layer}
+    \label{fig:Convolutional Layer vs Fully Connected Layer}
+\end{figure}
+\subsection{Receptive Field}
+Again considering images as signals, we can think of the Receptive Field as the part of the image that the Kernel is applied to. The Receptive Field is the area of the input image that has an effect on the output of the layer. This makes sense since the pixels in this case close to each other holds for other examples as well though are usually correlated 
+and thus it makes sense to consider the once close to each other. This can also be seen in this figure from the slides.
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/receptive_field.png}
+    \caption{Receptive Field}
+    \label{fig:Receptive Field}
+\end{figure}
+Here g3 is effected by h2, h3, h4, which are in turn also always influenced by the previous layer. Which would be x1, x2, x3, x4, x5. This means the receptive field grows large in Multilayer Networks, even if the Kernel is small. 
 
+\subsection{Dilation}
+Another way to make the Receptive Field rather large is Dilation. Again in the context of pixels and images(imho the most intuitiv). In a traditional convolution, a filter slides over the input image, and at each position, it computes the dot product between the filter weights and the image pixels. The dilation introduces gaps between the filter weights. This means that the filter will skip over certain pixels in the input, effectively increasing the distance between the pixels it considers. This means that we can maybe get a broader context. 
+
+\subsection{Padding}
+Padding also makes sense lets again as always consider a Grid of Pixels, if we apply a Kernel of say size 3. If we apply the Kernel to the first Pixel of the image on a side we would loose that pixel, this would also happen if our Kernel reaches the last pixel of the image. This means that we would loose Every Pixel in the left pixel row, as well as the right, making our output smaller or less Dimensional. 
+But this is not what we want we want to keep the Dimensionality of the Image, this is where Padding comes into play. Padding is just adding zeros around the image, so that the Kernel can be applied to every Pixel as we would basically just loose the zeros, instead of ours actual Pixels. This would then be called 0-Padding. There are also other types of Padding, such as Mirroring the Signal at the Edges or Peridodic Padding.(Not explained further on the slides, so I wont do it either.)
+
+\subsection{Stride}
+We can reduce the Dimensionality of the Output by using a Stride. The Stride is the amount by which the Kernel is moved over the Image. If we have a Stride of 2, the Kernel is moved by 2 Pixels. This also means that the Receptive Field Grows as our "context" grows larger. If we reduce Dimensionality it is also called Downsampling. 
+\subsection{Pooling} 
+In Pooling we can look at neighbouring Pixels and take an average or the maximum value. This also lets us assess context better, after we have done that we can for example do a stride operation again.
+\newpage
+\subsection{Example Max Pooling}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/maxpooling.png}
+    \caption{Max Pooling}
+    \label{fig:Max Pooling}
+\end{figure}
+This is an example of Max Pooling, here we just divide our image into 2x2 squares and take the maximum value of the 4 Pixels, since we use stride 2 there are no overlaps. This reduces the Dimensionality as can be seen in the output. 
+
+\subsection{Convolutional Layers with Several Channels}
+Ok this is where the Mind Fuck starts a bit. Lets talk about images. Our image has its set of pixels now and we always naively assumed the Pixels to have a certain value. But usually they might have multiple Values, for example RGB etc. This poses a Problem though, how we do we compute those with our Kernel Matrix. The answer is we dont we need a bit of a more sophisticated approach. 
+So lets introduce 4 Dimensional Tensors. 
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.5\textwidth]{images/4D_tensor.png}
+    \caption{4D Tensor}
+    \label{fig:4D Tensor}
+\end{figure}
+This figure depicts a 4D Tensor, lets break down what we need the Dimensions for, so first of all like before we need height and width of our Matrix. So we are in 2D Now, now all of those need to be applied to red green and blue, so now we are in 3D. Now we want to apply m filters for example to detect things such as  features like edges, textures, or colors, so for all of those we need different blocks of the 3D filters I just described. 
+This is why we need the 4th Dimension. 
+
+\subsection{Transpoed Convolution Layer}
+This is the same process we have been discussing, for Convolution Layers, but in reverse. All the Concepts we learned can be applied to those as well in reverse. This is usefull for Decoders and Genrative Models.
+
+\section{Batch Normalization}
 \end{document}
