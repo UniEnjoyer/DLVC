@@ -733,8 +733,8 @@ We could also force the Parameters to be equivalent, which is done by Parameter 
 \subsection{Data Augmentation}
 Data Augmentation is a technique to increase the size of the training set. This is done by applying transformations to the training data. (The one Python task from the practical Worksheet with the CIFAR Dataset)
 \subsection{Injecting Noise}
-Well we use Data Augmentation to make the Data a bit noisy so that the Neural Net is able to deal with Noise. We can also add Noice to hidden units. 
-We can even add noice to the weights. 
+Well we use Data Augmentation to make the Data a bit noisy so that the Neural Net is able to deal with Noise. We can also add noise to hidden units. 
+We can even add noise to the weights. 
 \subsection{Noisy Outputs}
 We can make the Outputs Noisy as well to make the Model robust to the Training Label being incorrect. This is done by saying our training label is just correct with a certain probability $1 - \epsilon$ 
 
@@ -954,5 +954,34 @@ Probably makes more sense to read the slides, a lot of images. Would be weird to
 \section{Transfer Learning}
 We can do transfer learning if we for example have a classifier for cats, and now want to classify dogs. We cann use features of the cat network, to classify dogs. We could for example initialize the weights of the dog network with the weights of the cat network, this would probably give us a good starting point for gradient descent. 
 
+\section{Autoencoders}
+An autoencoder is an architecture for neural networks designed to efficiently compress input data, reducing it to its essential features, and then reconstruct the original input from this compressed representation. Compression happens as the encoder takes the input data and transforms it into a usually lower-dimensional representation. The reconstruction occurs in the decoder, which attempts to restore the original input data.
+
+The name was chosen because the model learns to automatically and independently encode and then decode the data.
+As this is just another Feed-Forward-Network, we can use all the techniques we have learned so far. This means we can train it using SGD and Backpropagation. Since we want the output to be close to the input we can minimize that giving us \[L(x, g(f(x)))\] where x is the input and $g(f(x)) $ is the output. The error function can for example use the L1 or L2 loss function. $g(f(x))$ will be referred as the rekonstruction 
+$r$ moving forward.
+\subsection{Goal and Usecases}
+When we train an autoencoder, often the output itself is not what we are interested in, but rather the hidden representations, which are often the compressed lower dimensional version of the input data. This can be used for example for dimensionality reduction, or for example for denoising since it can learn to focus on the underlying 
+structure of the data. It is also usefull for Self Supervised Learning ad Generative Models.(Not explained further on the slides, so I wont do it either.)
+
+\subsection{Undercomplete, Complete and Overcomplete Autoencoders}
+An undercomplete autoencoder is one where the hidden layer has fewer neurons than the input layer. This forces the autoencoder to learn a compressed representation of the data. A complete autoencoder
+is one where the hidden layer has the same number of neurons as the input layer. This means that the autoencoder can learn to store the input data in the hidden layer. An overcomplete autoencoder is one where the hidden layer has more neurons than the input layer. This allows the autoencoder to learn multiple ways to represent the input data.(To not get a perfect 
+reconstruction, we would need to introduce some kind of regularization, so no trivial solution is found.)
+
+\section{Information Retrieval}
+\subsection{Autoencoder vs PCA}
+PCA is Principal Component Analysis, and what is basically does is it checks for correlated features and then tries to find a new set of uncorrelated features, thus reducing Dimensionality. We do this by finding the Principal Components which are the directions in which the Data varies the most. The biggest difference is that Autoencoders can learn none linear representations
+, while PCA can only learn linear ones. We have to be carefull not giving the Autoencoder too much capacity, since it could just learn the Identity Function, effectivly copying the input to the output. Due to the universal approximation theorem, the Autoencoder can also learn noise and irrelevant features, which would overfit the data. If it doesnt have enough Capacity
+it wont have enough flexibility to learn the underlying structure of the data.
+\subsection{Information Retrieval}
+Information Retrieval has the goal of finding entries in a Database, which are relevant to a query. This can be implemented efficiently in lower dimensional space priovided by the Autoencoder. We can force our hidden Code to be binary code, which would make it easier to compare the entries in the Database. We could save it in a Hash-Table where the Code-Vectors 
+are the Keys and the Entries are the Values. We could then Flip a Bit in the Query and then compare the Code-Vectors to find the most similar entries. This is called Semantic Hashing.
+\section{Regularization in Autoencoders}
+Ideally we want our Autoencoder to choose a Dimensionality for the Data, which represents the complexity of the Data. So for Autoencoders we can also introduce Regularization. Besides not wanting to copy the Data, we also want to force Sparsity of the Representation and make the Model robust to Noise. A well regularized Autoencoder
+should have bigger capacity, while also being able to learn the underlying structure of the Data.
+
+\subsection{Sparse Autoencoders}
+A sparse Autoencoder adds a penalty term to the loss function, \[ L(x, r) + \Omega(h) \]
 
 \end{document}
