@@ -982,6 +982,72 @@ Ideally we want our Autoencoder to choose a Dimensionality for the Data, which r
 should have bigger capacity, while also being able to learn the underlying structure of the Data.
 
 \subsection{Sparse Autoencoders}
-A sparse Autoencoder adds a penalty term to the loss function, \[ L(x, r) + \Omega(h) \]
+A sparse Autoencoder adds a Regularization term to the loss function, \[ L(x, r) + \Omega(h) \]. This is commonly used to learn features for other tasks
+such as Classification. It has to be noted that this is not equivalent to the MAP Estimation. It can be seen as a preference for certain Functions. If we take a look we see some similarities to a generative Model with latent variables. Ok lets go through why that is. 
+Given a model with visible variables \( x \) and latent variables \( h \), the joint probability distribution is:
+\[
+p_{\text{model}}(x, h) = p_{\text{model}}(x|h) \cdot p_{\text{model}}(h)
+\]
+
+% Log-Likelihood via Marginalization
+The log-likelihood of the observed data \( x \) can be found by marginalizing over the latent variables \( h \):
+\[
+\log p_{\text{model}}(x) = \log \sum_h p_{\text{model}}(x, h)
+\]
+
+% Autoencoder Approximation
+The autoencoder can be interpreted as an approximation by considering only the most probable value of \( h \) that maximizes:
+\[
+\log p_{\text{model}}(x, h) = \underbrace{\log p_{\text{model}}(x|h)}_{-L(x,r)} + \underbrace{\log p_{\text{model}}(h)}_{-\Omega(h)}
+\]
+The term $\log p_{\text{model}}(h)$ can for example be defined as the Laplace Prior. 
+
+\subsection{Depth}
+As we just have a Feed-Forward-Network, we can just add more layers making the network more powerfull. 
+
+\subsection{Denoising Autoencoders}
+We can build a Denoising Autoencoder by comparing the Loss with r. But this might lead to issues, since the 
+Autoencoder (with enough capacity) will find the Identity Function. So we can add Noise to the Input, and then compare the Output to the original Input. This is called Denoising Autoencoder. So the loss $ L(x, r)$ is now defined with $r = g(f(\hat{x}))$ with $\hat{x}$ being the Noisy Input.
+
+\subsection{Network Initialization with stacked denoising Autoencoders}
+We can use denoising Autoencoders to pre train deep networks. The deep network training can be subdivided into Multiple steps. 
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/stacked_autoencoders.png}
+    \caption{Stacked Autoencoder}
+    \label{fig:Stacked Autoencoder}
+\end{figure}
+
+As visible in the image we keep on Stacking the Autoencoders. And after each step calculate the loss, and then Stack again. 
+At the last Autoencoder we train the layer(which is a decoder) supervised and then we can fine tune the whole network by training the whole network supervised. (NOTE: I am really unsure here)
+\section{Variational Autoencoders and Stochastic Autoencoders}
+\subsection{Discrimative vs Generative Models}
+\begin{itemize}
+    \item Discriminative Models: Learn the conditional probability distribution \(Y^{*} = \arg \max_{Y} p(y|x) \) directly.
+    \item Generative Models: A generative method models the conditional probabilities for the classes \( P(X|Y) \) and uses Bayes' theorem together with the prior \( P(Y) \) to find the posterior \( P(Y|X) \).
+
+    The term generative refers to the fact that the prior \( P(Y) \) and the likelihood \( P(X|Y) \) can be used to generate new data by sampling from \( P(X) = \sum_Y P(X|Y) \cdot P(Y) \).
+    
+    The class labels are determined by:
+    \[
+    Y^* = \arg\max_Y P(Y|X) = \arg\max_Y \frac{P(X|Y) \cdot P(Y)}{P(X)}
+    \]
+    Since \( P(X) \) is constant for all classes, this simplifies to:
+    \[
+    Y^* = \arg\max_Y P(X|Y) \cdot P(Y)
+    \]
+\end{itemize}
+
+\section{Stochastic Autoencoders}
+Thus far we have only considered deterministic Autoencoders, but we can also introduce probabilistic Functions. We could say that we now have $p_{encoder}(h|x)$  and $p_{decoder}(x|h)$. 
+
+\subsection{Stochastic Encoder and Decoders}    
+
+
+
+
+
+
+
 
 \end{document}
