@@ -1042,9 +1042,32 @@ At the last Autoencoder we train the layer(which is a decoder) supervised and th
 Thus far we have only considered deterministic Autoencoders, but we can also introduce probabilistic Functions. We could say that we now have $p_{encoder}(h|x)$  and $p_{decoder}(x|h)$. 
 
 \subsection{Stochastic Encoder and Decoders}    
+Since we are using Neural Nets as before our strategy doesnt really change, the only difference in Terms of the Loss is that, $x$ is not just our input, but also the target of the output. This is why we get the Decoder which tries to reconstruct the input given the hidden code and thus we need to minimize negative log likelihood of this reconstruction $
+- \log p_{decoder}(x|h)$. Regarding the output, if x follows a normal distribution, we can minimize the mean squared error, because the NN needs to predict the mean of the distribution. If x follows a Bernoulli distribution, which has 2 outcomes, Sigmoid makes sense, as you might remember it is just a value between 0 and 1. This is equivalent to minimizing the binary cross-entropy loss, which measures the difference between 2 
+probability distributions. And then we also have the Case of Multiple Class Labels, in which case we use Softmax, because the sum of all probabilities is 1. We again can minimize the cross entropy loss. 
+
+The likelihood \( L \) of the observed data given the predicted probabilities is:
+\[
+L = \prod_{i=1}^{N} p_i^{y_i} (1 - p_i)^{1 - y_i}
+\]
+
+The log-likelihood \( \log L \) is:
+\[
+\log L = \sum_{i=1}^{N} \left[ y_i \log(p_i) + (1 - y_i) \log(1 - p_i) \right]
+\]
+
+The negative log-likelihood is then:
+\[
+-\log L = -\sum_{i=1}^{N} \left[ y_i \log(p_i) + (1 - y_i) \log(1 - p_i) \right]
+\]
 
 
+The cross-entropy \( H(p, q) \) for binary classification is given by:
+\[
+H(p, q) = -\frac{1}{N} \sum_{i=1}^{N} \left[ y_i \log(p_i) + (1 - y_i) \log(1 - p_i) \right]
+\]
 
+When comparing this to the negative log-likelihood, we see that they differ only by the constant factor \( \frac{1}{N} \), which represents the average over all instances. Since this constant factor does not affect the minimization process, minimizing the cross-entropy is equivalent to minimizing the negative log-likelihood.
 
 
 
