@@ -1044,7 +1044,7 @@ Thus far we have only considered deterministic Autoencoders, but we can also int
 \subsection{Stochastic Encoder and Decoders}    
 Since we are using Neural Nets as before our strategy doesnt really change, the only difference in Terms of the Loss is that, $x$ is not just our input, but also the target of the output. This is why we get the Decoder which tries to reconstruct the input given the hidden code and thus we need to minimize negative log likelihood of this reconstruction $
 - \log p_{decoder}(x|h)$. Regarding the output, if x follows a normal distribution, we can minimize the mean squared error, because the NN needs to predict the mean of the distribution. If x follows a Bernoulli distribution, which has 2 outcomes, Sigmoid makes sense, as you might remember it is just a value between 0 and 1. This is equivalent to minimizing the binary cross-entropy loss, which measures the difference between 2 
-probability distributions. And then we also have the Case of Multiple Class Labels, in which case we use Softmax, because the sum of all probabilities is 1. We again can minimize the cross entropy loss. 
+probability distributions. And then we also have the Case of Multiple Class Labels, in which case we use Softmax, because the sum of all probabilities is 1. We again can minimize the cross entropy loss.  As a short reminder because I forgot as well the formulas written out to show that the cross entropy is indeed the same as the negative log likelihood.
 
 The likelihood \( L \) of the observed data given the predicted probabilities is:
 \[
@@ -1070,7 +1070,390 @@ H(p, q) = -\frac{1}{N} \sum_{i=1}^{N} \left[ y_i \log(p_i) + (1 - y_i) \log(1 - 
 When comparing this to the negative log-likelihood, we see that they differ only by the constant factor \( \frac{1}{N} \), which represents the average over all instances. Since this constant factor does not affect the minimization process, minimizing the cross-entropy is equivalent to minimizing the negative log-likelihood.
 
 
+\section{Variational Autoencoders}
+Instead of directly producing a laten representation the encoder outputs parameters to a probability distribution, from which we then sample. However this poses a problem since we cannot backpropagate through the sampling process, because sampling is not differentiable. 
+\subsection{Reparametrization Trick}
+The reparametrization trick is a way to make the sampling process differentiable. Instead of sampling from the distribution directly, we sample from a standard normal distribution and then transform the samples to the desired distribution, so our latent variable is now $z = \mu + \sigma \cdot \epsilon$ where $\epsilon$ is sampled from a standard normal distribution. This way we can backpropagate through the sampling process.
+\subsection{Variational Autoencoder Loss}
+The loss function of a variational autoencoder consists of two parts: the reconstruction loss and the KL divergence. The KL Divergence which was introduced in chapter 2.15 is a measure of how much one probability distribution differs from a second one.  The loss function is then given by: \[
+L = \lambda L(x, r) + D_{KL}(q(h|x) || p(h)) 
+\]
+Ok lets break this down. Since $q(h|x)$ is a normal distrubution, we can calculate the KL Divergence analytically, this was I think a super long proof on one theoretical task, how ever considering the length I am going to doubt that this is relevant to the exam and skip it. Ok first we have a look at the decoder. This Decoder is a probability function 
+given by $p(x|h) $ Which means that given a hidden representation, we return a probability distribution over the Data $x$. This conditional probability distribution is given by a Normal Distribution, with mean $\mu$ and standard deviation $\sigma$. \[
+p(x|h) = \mathcal{N}(x|\mu_{dec}(h), \sigma^2) \] h follows a normal distribution as well, so the h is drawn from a distrubution with mean 0 and standard deviation 1. Then $p(x)$ is also fairly simple to calculate, all we have to do is consider all values of x given h and the respective probabilities of h, therefore with Marginalization
+we get \[
+p(x) = \int p(x|h) p(h) dh \] 
+
+\textbf{Problem:} This expression is difficult to compute because the integral \( p(x) = \int p(x|h)p(h) \, dh \) is hard to calculate (if we try to estimate the integral by sampling from \( p(h) \), \( p(x|h) \) is zero for most values).
+
+ Can we sample \( h \) in such a way that \( p(x|h) \) does not frequently yield small values? (i.e., instead of sampling from \( p(h) \), we prefer to sample from \( p(h|x) \)). With some tricks, this is possible...
+
+Instead of maximizing \( p(X) \), we use the log-trick and maximize \( \log(p(X)) \):
+\[
+\log(p(X)) = \log \left( \prod_{x \in X} p(x) \right) = \sum_{x \in X} \log(p(x))
+\]
+
+This is feasible because the logarithm is monotonically increasing. Instead of setting \( p(x) = \int p(x|h)p(h) \, dh \), we add another term and maximize:
+\[
+\sum_{x \in X} \log(p(x)) - D_{KL} (q(h|x) \| p(h|x))
+\]
+where \( D_{KL} \) denotes the Kullback-Leibler divergence.
+
+Since the Kullback-Leibler divergence \( D_{KL} \) is always \( \geq 0 \), and is \( 0 \) if \( q(h|x) = p(h|x) \), this provides a lower bound for the log-evidence. By maximizing this expression and having \( q(h|x) \) approach \( p(h|x) \), the \( D_{KL} \)-term approaches 0, and we maximize the original \( \log(p(x)) \) term.
+
+We can simplify the ELBO as follows:
+\[
+\text{ELBO} = \log(p(x)) - D_{KL}(q(h|x) \| p(h|x))
+\]
+\[
+= \log(p(x)) - \int q(h|x) \left( \log(q(h|x)) - \log(p(h|x)) \right) \, dh
+\]
+
+Using Bayes' theorem:
+\[
+= \log(p(x)) - \int q(h|x) \left( \log(q(h|x)) - \log(p(x|h)) - \log(p(h)) + \log(p(x)) \right) \, dh
+\]
+
+\[
+= \int q(h|x) \log(p(x|h)) \, dh - \int q(h|x) \left( \log(q(h|x)) - \log(p(h)) \right) \, dh
+\]
+\[
+= \int q(h|x) \log(p(x|h)) \, dh - D_{KL}(q(h|x) \| p(h))
+\]
+
+Instead of maximizing the ELBO, we usually minimize the negative ELBO, leading us back to the original loss function:
+\[
+L = - \int q(h|x) \log(p(x|h)) \, dh + D_{KL}(q(h|x) \| p(h))
+\]
+
+Compared to the original integral \( p(x) = \int p(x|h)p(h) \, dh \), \( \int q(h|x) \log(p(x|h)) \, dh \) can be efficiently sampled because \( q(h|x) \) approximates \( p(h|x) \). For a given input image \( x \), the encoder network first calculates \( \mu_i \) and \( \sigma_i \) for \( q(h|x) = N(h|\mu_i, \sigma_i) \). Differentiable values for \( h \) can then be sampled from this distribution using the reparameterization trick. These values are used in the decoder to compute \( p(x|h) \). If we use a Normal distribution for \( p(x|h) \), we end up with an L2 loss for \( L(x, r) \) with \( r = \mu_{\text{dec}}(h) \).
+ This was quite a long and detailed explanation, I am not sure if I get it myself, and I really doubt this is relevant for the exam, but I am going to leave it in here, and the core concepts hopefully came across.
+
+ \subsection{Pros and Cons of Variational Autoencoders}
+ \begin{itemize}
+    \item \textbf{Pros:}
+    \begin{enumerate}
+        \item In VAEs close Proximity in the latent space corresponds to close proximity in the output space. This is particularly usefull, because it makes it easier to interpolate between different data points. 
+        \item VAEs can be used to generate new data points, by sampling from the latent space, this makes VAEs usefull for generative tasks.    
+    \end{enumerate}
+    \item \textbf{Cons:}
+    \begin{enumerate}
+        \item VAEs outputs are more blurry compared to conventional Autoencoders, because the laten space tries to follow a distribution. 
+        \end{enumerate}
+ \end{itemize}
+ \newpage
+ \section{U-Net}
+ For the funsies here is an image of a so called U-Net, apparently it is used for Image Segmentation Tasks. 
+    \begin{figure}[h]
+        \centering
+        \includegraphics[width=0.9\textwidth]{images/unet.png}
+        \caption{U-Net}
+        \label{fig:U-Net}
+    \end{figure}
+\section{Autoregressive Models} 
+Lets start by having a grid, of Pixels with size nxn, and look at this example in the Figure below.  
+\begin{figure}
+    \centering
+    \includegraphics[width=0.7\textwidth]{images/autoregressive.png}
+    \caption{Autoregressive Model}
+    \label{fig:Autoregressive Model}
+\end{figure}
+In Autoregressive models, we look at this grid and look at the pixels, as one long array, and in this array the pixels only depend on the pixels before them. So if we look take a look at the figure we see the pixel $x_{t}$ only depends on pixels before that, so $x_{t-1}$ and $x_{t-2}$ and so on, until $x_{0}$. If we consider this p(x) 
+is given by the product of the conditional probabilities of the pixels given the pixels before them. So $$p(x) = \prod_{i=1}^{n^2} p(x_{t}|x_{1}, x_{2}, ..., x_{t-1})$$ Here we can again Train the Model using negative log likelihood, we then minimize $\theta$ so that $$
+\theta = \arg \min_{\theta} - \sum_{t = 1}^{n^2} \log p(x_{t}|x_{1}, x_{2}, ..., x_{t-1})$$
+\subsection{PixelCNN}
+A NN with the properties discussed before this, can be implemented by using Masks to make sure that the pixel only depends on the pixels before it. The architeturce is flawed though, because using masks can lead to blindspots, this is why we devide the receptive field into a horizontal and vertical stack. (TODO Explain this better! 
+I dont really get the images on the slides)
+\subsection{Inference Autoregressive Models}
+\begin{algorithm}
+    \caption{Generating Images with an Autoregressive Model}
+    \begin{algorithmic}[1]
+    \State Initialize the image $x$ with 0.
+    \For{$i \in \{1, \ldots, n^2\}$}
+        \State Compute the probabilities $p(\cdot \mid x_{t-1}, \ldots, x_1)$ with PixelCNN.
+        \State Sample the pixel value $x_t \sim p(\cdot \mid x_{t-1}, \ldots, x_1)$.
+    \EndFor
+    \end{algorithmic}
+    \end{algorithm}
+    \subsection{Pros and Cons of Autoregressive Models}
+    \begin{itemize}
+        \item \textbf{Pros:}
+        \begin{enumerate}
+            \item Can be used with Discrete and Continuous Data.
+            \item Allows to calculate the probability if an image belongs to a Dataset directly. 
+            \item Training is stabil
+        \end{enumerate}
+        \item \textbf{Cons:}
+         \begin{enumerate}
+            \item Slow to generate Samples, since we have to wait for the previous pixel to be generated. 
+            \item The architecture needs to maintain autoregressive properties during trainin. 
+            \end{enumerate}
+    \end{itemize}
+\section{Generative Adversarial Networks (GAN)}
+Ok, now we want a real battle of CNNs and introduce GAN. We have two Networks, one generates random samples, and the other one tries to distinguish between real and fake samples.  So we have a so called Generator Network, and discriminator Network. 
+\subsection{Training a GAN}
 
 
+The objective function of a GAN is the binary cross-entropy:
+\[
+J_{\text{GAN}} = \underbrace{\log D_{\theta_d}(x)}_{\text{Probability that } x \text{ is real}} + \underbrace{\log(1 - D_{\theta_d}(G_{\theta_g}(z)))}_{\text{Probability that } G_{\theta_g}(z) \text{ is fake}}
+\]
+
+During training, we alternate between optimizing the discriminator and the generator:
+
+\[
+\theta_d^* = \arg \max_{\theta_d} J_{\text{GAN}}
+\]
+\[
+\theta_g^* = \arg \min_{\theta_g} J_{\text{GAN}}
+\]
+The networks is done Training when the Diskriminator can no longer distinguish between real and fake samples, thus outputs 0.5 for all samples.
+
+The algorithm does basically that, but I am too lazy to tex, TODO tex the algorithm. 
+
+\subsection{Pros and Cons of GANs}
+\begin{itemize}
+    \item \textbf{Pros:}
+    \begin{enumerate}
+        \item Allows for generation of new images
+        \item Highly realistic images can be generated
+    \end{enumerate}
+    \item \textbf{Cons:}
+    \begin{enumerate}
+        \item We are training 2 CNN at the same time, which can take a lot of time.
+        \item The Training is unstable due to the minmax game between the Generator and the Discriminator.
+        \item Mode Collaps, the Generator might find specific features that fool the Discriminator, but dont represent the whole data, eg only generating Seals, even thought the Dataset has more animals. 
+        \end{enumerate}
+\end{itemize}
+\section{Flow Based Generative Model}
+The following text was rewritten by chatgpt(I cant write this well lol)
+Suppose we have a random variable \( z \) with a simple distribution, such as a standard normal distribution. We now want to transform this random variable into a more complex distribution using a function \( x = f_{\theta}(z) = f_k \circ \ldots \circ f_2 \circ f_1(z) \), which is a composition of invertible functions. This gives \( f \) the nice property that it is invertible due to it being bijective. For any \( x \), we have exactly one \( z \) that could be sampled to produce it.
+
+To start, we need the change of variables formula. With \( f : Z \rightarrow X \) being a bijective function, and \( p_{\theta}(z) \) defined over \( z \in Z \), we get the formula:
+\[
+p_{\theta}(x) = p_{\theta}(f^{-1}(x)) \left| \det \left( \frac{\partial f^{-1}(x)}{\partial x} \right) \right|
+\]
+
+Since we have a specific \( z \) associated with each \( x \):
+\[
+p_{\theta}(x) = p_{\theta}(z) \left| \det \left( \frac{\partial z}{\partial x} \right) \right|
+\]
+
+Let's specify the prior distribution \( p_{\theta}(z) \) as a normal distribution:
+\[ 
+p_{\theta}(z) = N(z | 0, I) 
+\]
+
+Thus, for the distribution over \( x \), we have:
+\[
+p_{\theta}(x) = p_{\theta}(z = f_{\theta}^{-1}(x)) \left| \det \left( \frac{\partial f_{\theta}^{-1}(x)}{\partial x} \right) \right|
+\]
+
+In higher dimensions, this involves the determinant of the Jacobian of \( f_{\theta} \):
+\[
+p_{\theta}(x) = p_{\theta}(z = f_{\theta}(x)) \cdot \left| \det(J_{f_{\theta}}(x)) \right|
+\]
+
+Our goal is to maximize the likelihood of the data \( x_i \):
+\[
+\theta^* = \arg \max_\theta \prod_i p_\theta(x_i)
+\]
+
+Taking the log, this becomes:
+\[
+\theta^* = \arg \max_\theta \sum_i \log(p_\theta(x_i))
+\]
+
+Substituting the change of variables formula, we get:
+\[
+\theta^* = \arg \max_\theta \sum_i \left[ \log(p_\theta(z = f_\theta(x_i))) + \log \left| \det(J_{f_\theta}(x_i)) \right| \right]
+\]
+
+To achieve this, we need to design an invertible neural network that can compute both \( g_\theta \) and \( f_\theta \) efficiently. Additionally, we need a way to compute the Jacobian determinant \( \det(J_{f_\theta}(x)) \) efficiently.
+
+\subsection{Affine Coupling Layer}
+To make everything easier for us lets introduce affine coupling layers. \begin{figure}
+    \centering
+    \includegraphics[width=0.7\textwidth]{images/affine_coupling_layer.png}
+    \caption{Affine Coupling Layer}
+    \label{fig:Affine Coupling Layer}
+\end{figure}
+This affine coupling layer example is a simple example yet shows why it is so effective for us, lets break it down. First we split the input into two parts, $x_1$ and $x_2$. We then already see that $y_1 = x_1 $ which I will get to later lets first focus on $y_2$. $y_2$ is computed by $x_2 \cdot \exp(s(x_1)) + t(x_1)$. This partition computes
+$y_{2}$ only considering x2 and s, t which only depend on x1. Since $x_1$ is the identical to $y_1$ we can just use $y_1$ as $x_1$, therefore creating $$y_2 =  x_{2} \cdot \exp(s(y_1)) + t(y_1)$$ This means the inverse of f is given by $$x_1 = y_1$$ and $$x_2 = (y_2 - t(y_1)) \cdot \exp(-s(y_1))$$. Lets break down the Inverse function of $y_2$
+First we substract the shift we applied to $y_2$ and then we divide by the scaling factor(here -s to make it easier to read). 
+
+\subsection{Affine Coupling Layer Determinante of the Jacobian}
+The Jacobian matrix \(J_f\) of the transformation can be written as a block matrix:
+\[
+J_f = 
+\begin{pmatrix}
+\frac{\partial y_1}{\partial x_1} & \frac{\partial y_1}{\partial x_2} \\
+\frac{\partial y_2}{\partial x_1} & \frac{\partial y_2}{\partial x_2}
+\end{pmatrix}
+=
+\begin{pmatrix}
+I & 0 \\
+\frac{\partial y_2}{\partial x_1} & \text{diag}(\exp(s(x_1)))
+\end{pmatrix}
+\]
+Lets examine why this makes sense closer, since $y_1 = x_1$ the first entry of the Jacobian is the Identity Matrix, due to $\frac{\partial y_1}{\partial x_1}$ being the first entry. Since $y_1$ does not depend on $x_2$ it is zero. The third entry is annoying but fck that we will leave it for now which makes sense as we will see in a bit. The last also makes sense if we consider. 
+The lower right block \(\frac{\partial y_2}{\partial x_2}\) of the Jacobian matrix is a diagonal matrix because the transformation for \(x_2\) is:
+\[
+y_2 = x_2 \odot \exp(s(x_1)) + t(x_1)
+\]
+where \(\odot\) denotes element-wise multiplication, and \(s(x_1)\) and \(t(x_1)\) are functions derived from \(x_1\).
+
+To compute the partial derivatives:
+- For \(i = j\):
+  \[
+  \frac{\partial y_{2,i}}{\partial x_{2,i}} = \exp(s_i(x_1))
+  \]
+- For \(i \neq j\):
+  \[
+  \frac{\partial y_{2,i}}{\partial x_{2,j}} = 0
+  \]
+
+Since each element \(y_{2,i}\) only depends on the corresponding element \(x_{2,i}\) and not on any other elements of \(x_2\), the Jacobian \(\frac{\partial y_2}{\partial x_2}\) is a diagonal matrix:
+\[
+\frac{\partial y_2}{\partial x_2} = \text{diag}(\exp(s(x_1)))
+\]
+Now that every element makes sense lets continue with some very usefull tricks.
+For a \(2 \times 2\) block matrix 
+\[
+\begin{pmatrix}
+A & B \\
+C & D
+\end{pmatrix}
+\]
+where either \( B = 0 \) or \( C = 0 \), it follows from the generalized rule for the determinant:
+\[
+\text{det} \begin{pmatrix}
+A & 0 \\
+C & D
+\end{pmatrix}
+= \text{det} \begin{pmatrix}
+A & B \\
+0 & D
+\end{pmatrix}
+= \text{det}(A) \cdot \text{det}(D)
+\]
+
+The determinant of the identity matrix \( A \) is 1 and the determinant of a diagonal matrix \( D \) is the product of its diagonal entries. Therefore, the determinant of the Jacobian of the affine coupling layer is:
+\[
+\text{det}(J_f) = 1 \cdot \exp \left( \sum_j s(x_1)_j \right).
+\]
+This rather through dive into Affine Coupling Layers was usefull, as we now compute the determinant of the Jacobian very easily making this model feasable. 
+
+\subsection{Coupling Layers}
+We now face one more problem if we just align coupling layers we will run into the problem, that the Normalizing Flow will not learn anything as it is an Identity Function to the first partition $x_1$. To solve this  we can permute partitions in between layers, this can either be done by like shuffeling the inputs or sth like that, which would be the naive approach. We can also use 1x1 convolutions which learn which permutation maximizes performance.
+
+\subsection{Pros and Cons of Flow Based Generative Models}
+\begin{itemize}
+    \item \textbf{Pros:}
+    \begin{enumerate}
+        \item Allows for efficient Sampling of new Data 
+        \item We can reflect the variety in the training data and thus produce more variety in the generated data.
+        \item Allows for calculation of latent representation of the data.
+        \item Integrate into other Models to ensure a good prior, for example in VAE we could use a Flow Based Generative Model to ensure a distribution that makes more sense then a normal distribution.
+    \end{enumerate}
+    \item \textbf{Cons:}
+     \begin{enumerate}
+        \item Network architecture needs to be invertible
+        \item The image quality is lower than in GANs or Diffusion Models
+        \item Idk but the Slides say GANs are the way to go, so I guess they are not as good as GANs.
+        \end{enumerate}
+        
+\end{itemize}
+\newpage
+\section{Diffusion Models}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/diffusion.png}
+    \caption{Diffusion Model}
+    \label{fig:Diffusion Model}
+\end{figure}
+Another way to create images is using a diffusion Model. We will slowly deconstruct the image as seen in the Figure, at the same time a NN is trained to do the exact opposite of that. In the figure we can see the NN $p_{\theta}(x_{t-1}|x_t)$ fighting the diffusion process given by $p_{\theta}(x_t|x_{t-1})$. 
+\subsection{Forward Diffusion Process}
+
+Starting from an initial observation \( x_0 \sim p(x) \), the forward diffusion process generates a sequence of increasingly noisy samples \( x_1, x_2, \ldots, x_T \). Lets dicuss this in more detail: 
+
+\begin{itemize}
+    \item \textbf{Adding Noise Over Time:}
+    \begin{itemize}
+        \item At each step \( t \) in the sequence, we add a small amount of Gaussian noise to the sample from the previous step.
+        \item The mean of the sample is slightly reduced, and the noise level is controlled by a parameter \( \beta_t \) that increases over time.
+    \end{itemize}
+
+    \item \textbf{Defining the Noise Schedule:}
+    \begin{itemize}
+        \item The noise level at each step is determined by a "variance schedule" \( \beta_t \), where \( \beta_t \) increases as \( t \) gets larger.
+        \item This means that the samples get progressively noisier as we move through the steps.
+    \end{itemize}
+
+    \item \textbf{Mathematical Formulation:}
+    \begin{itemize}
+        \item The forward process can be described by:
+        \[
+        q(x_{1:T} | x_0) = \prod_{t=1}^{T} q(x_t | x_{t-1}), \quad q(x_t | x_{t-1}) = \mathcal{N}(x_t | \sqrt{1 - \beta_t} x_{t-1}, \beta_t I)
+        \]
+        \item Here, each \( x_t \) is drawn from a normal distribution with a mean of \( \sqrt{1 - \beta_t} x_{t-1} \) and variance \( \beta_t \).
+    \end{itemize}
+
+    \item \textbf{Combining Multiple Steps:}
+    \begin{itemize}
+        \item We can combine multiple diffusion steps into one using a compound factor.
+        \item Let \( \alpha_t = 1 - \beta_t \) and 
+        \[
+        \bar{\alpha}_t = \prod_{s=1}^{t} \alpha_s,
+        \]
+        then:
+        \[
+        q(x_t | x_0) = \mathcal{N}(x_t; \sqrt{\bar{\alpha}_t} x_0, (1 - \bar{\alpha}_t)I)
+        \]
+    \end{itemize}
+
+    \item \textbf{Effect Over Time:}
+    \begin{itemize}
+        \item As the process continues, the original sample \( x_0 \) gradually loses its distinct features and becomes increasingly noisy.
+        \item IThis will of course be a standard normal distribution at the end.
+    \end{itemize}
+\end{itemize}
+
+\subsection{Reversing the Diffusion Process}
+
+To generate new samples \( x_0 \sim p(x) \) from a latent variable \( x_T \sim \mathcal{N}(0, I) \), we need to reverse the diffusion process and sample from \( q(x_{t-1} | x_t) \). If \( \beta_t \) is small enough, \( q(x_{t-1} | x_t) \) will also be normally distributed. However, directly estimating \( q(x_{t-1} | x_t) \) is impractical because it would require the entire dataset. Instead, we use a neural network \( p_\theta(x_{t-1} | x_t) \) to approximate these conditional probabilities in a diffusion model. The reverse diffusion process can then be conducted as follows:
+
+\begin{itemize}
+    \item \textbf{Training the Neural Network:}
+    \begin{itemize}
+        \item A neural network \( p_\theta(x_{t-1} | x_t) \) is trained to approximate the conditional probabilities \( q(x_{t-1} | x_t) \).
+        \item The model learns the mean \( \mu_\theta(x_t, t) \) for the distribution.
+        \item The variance \( \sigma_t^2 \) is set to a predefined value (e.g., \( \sigma_t^2 = \beta_t \)) and is not learned.
+    \end{itemize}
+
+    \item \textbf{Reverse Diffusion Process:}
+    \begin{itemize}
+        \item The reverse process is defined as:
+        \[
+        p_\theta(x_{0:T}) = p_\theta(x_T) \prod_{t=1}^{T} p_\theta(x_{t-1} | x_t)
+        \]
+        \item Where:
+        \[
+        p_\theta(x_{t-1} | x_t) = \mathcal{N}(x_{t-1} | \mu_\theta(x_t, t), \sigma_t^2 I)
+        \]
+    \end{itemize}
+    
+    \item \textbf{Generating New Samples:}
+    \begin{itemize}
+        \item Start with a sample \( x_T \) from \( \mathcal{N}(0, I) \).
+        \item Iteratively sample \( x_{t-1} \) from \( p_\theta(x_{t-1} | x_t) \) until \( t = 1 \).
+        \item The final sample \( x_0 \) will be drawn from \( p(x) \).
+    \end{itemize}
+\end{itemize}
+\subsection{Objective Funtion}
+Ok i have no clue what happened on those slides this is the result of some paper from 2020. TODO wtf is happening here.
+\[
+B_{\text{simple}} := \sum_{t=2}^{T} \mathbb{E}_{t, x_0, \epsilon} \left\| \epsilon - \epsilon_\theta \left( \sqrt{\bar{\alpha}_t} x_0 + \sqrt{1 - \bar{\alpha}_t} \epsilon, t \right) \right\|^2
+\]
 
 \end{document}
