@@ -1455,5 +1455,187 @@ Ok i have no clue what happened on those slides this is the result of some paper
 \[
 B_{\text{simple}} := \sum_{t=2}^{T} \mathbb{E}_{t, x_0, \epsilon} \left\| \epsilon - \epsilon_\theta \left( \sqrt{\bar{\alpha}_t} x_0 + \sqrt{1 - \bar{\alpha}_t} \epsilon, t \right) \right\|^2
 \]
+\subsection{Architecture}
+We can use a U-Net to model the diffusion model. But this is kinda of what ever because we just need to map one image to another. 
+
+\subsection{Pros and Cons of Diffusion Models}
+\begin{itemize}
+    \item \textbf{Pros:}
+    \begin{enumerate}
+        \item Used currently to generate the most realistic images
+        \item We can reflect the variety in the training data and thus produce more variety in the generated data.
+        \item We don't need a particular architecture. 
+    \end{enumerate}
+    \item \textbf{Cons:}
+     \begin{enumerate}
+        \item The Training is rather slow, due to the fact that we need to evaluate the Model in every iteration, this also makes creation of images slow. 
+    \end{enumerate}
+    \end{itemize}
+\section{Transformer Networks}
+    \subsection{Introduction to Natural Language Processing}
+    We want to process natural language, spoken or written by humans now. A Transformer looks like this full image, however we will break it down into smaller parts. 
+    \begin{figure}[h]
+        \centering
+        \includegraphics[width=0.7\textwidth]{images/transformer.png}
+        \caption{Transformer}
+        \label{fig:Transformer}
+    \end{figure}    
+    \subsection{Transformers}
+    The goal of a Transformer Network is to map input to output, we could take a translation from, English to German for example. Ok what is our first step now? First we need to encode the input, this is what we call the Embedding. 
+    \subsection{Embedding}
+    \newpage
+    Human Language is often not fit as input, since using single letters would lead to a huge input space, this is why we use Embeddings. Elements of this embedded sequence are called Tokens. Regarding the image from the Slides, we have an example sentence, which we encode into a sequence of ints, which we then map to a vector with random initialized values. The sequence of vectors can be 
+    seen as matrix, where each row is a vector corresponding to a token in the sentence for simplicity imagine the tokens as words. Those vectors are not static though. 
+    \subsection{Gradient Descent on Embeddings}
+    The Embeddings are now considered part of the models parameters. During training we can adjust the embeddings to minimize the loss function. Since we dont use all tokens at the look up table, only a subset of the vectors needs to be updated, since the other gradients are zero (i guess we would rather use $-\infty$).
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/input_embeddingg.png}
+    \caption{Embedding}
+    \label{fig:Embedding}
+\end{figure}    
+\subsection{Positional Encoding}
+Next up in the figure of a Transformer Network is Positional Encoding, as you can see we add something onto our vectors, but what exactly? We add a sinusoidal function to the vectors, this vector looks as follows \[
+\gamma(p) = \left[
+\sin \left( \frac{p}{10000^{\frac{2i}{d_{model}}}} \right), 
+\cos \left( \frac{p}{10000^{\frac{2i}{d_{model}}}} \right), 
+\sin \left( \frac{p}{10000^{\frac{2(i+1)}{d_{model}}}} \right), 
+\cos \left( \frac{p}{10000^{\frac{2(i+1)}{d_{model}}}} \right), 
+\ldots
+\right]
+\]
+This is like adding a frequency to the vectors, so the Neural Net can distinguish between the positions. One might think about why we dont just make the position a trainable parameter, that would work, but the authors of the paper preffered Sinuoid-Encoding allows for extrapolation for longer sequences this means we can expand on longer sequences(I think) thus making 
+the model more general.
+
+\subsection{Multi-Head Attention Mechanism}
+
+Next, we'll dive into the Multi-Head Attention Mechanism, inspired by the excellent 3Blue1Brown video in his Deep Learning Series on Transformers. This section introduces some complex concepts, so let's break down the formula for attention as shown in the slides:
+
+\[ \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V \]
+
+The first question is: What are \(Q\), \(K\), and \(V\), and why do we need them?
+
+\begin{itemize}
+    \item \textbf{Queries (Q)}: Think of queries as questions posed by tokens. For example, in the sequence \textit{I am a green happy tree}, the word \textit{tree} might query for adjectives describing it. We obtain the query vector by multiplying the embedding vector with a learned matrix. This matrix helps form questions related to the tokens.
+    
+    \item \textbf{Keys (K)}: Keys are used to match the questions (queries) with potential answers. By multiplying the embedding vector with another learned matrix, we get the key vector. If the key and query vectors are related, their dot product will be large. For instance, the dot product between the key and query for \textit{green} and \textit{tree} would be high.
+    
+    \item \textbf{Values (V)}: Values provide the actual content or answer. By multiplying the embedding vector with yet another learned matrix, we obtain the value vector. This vector is then used to refine our embeddings.
+\end{itemize}
+
+Here’s how the attention formula works:
+
+\begin{enumerate}
+    \item \textbf{Compute Dot Product}: Calculate the dot product of queries and keys. This measures how well each key matches a query.
+    \item \textbf{Scale by \( \sqrt{d_k} \)}: Divide by the square root of the key dimension \( d_k \) for numerical stability, preventing issues with large dot product values when applying softmax.
+    \item \textbf{Apply Softmax}: Apply the softmax function to obtain attention weights. These weights determine how much focus each token should get.
+    \item \textbf{Weighted Sum}: Multiply the attention weights by the value vectors and sum them up to get the final output.
+\end{enumerate}
+
+This process is parameterized by the learned Query, Key, and Value matrices.
+
+Finally, to prevent the decoder from looking ahead and using future information (cheating), we mask the values of positions that have not been reached yet.
+
+By understanding this process, the attention formula becomes clearer:
+
+\[ \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V \]
+
+
+\subsection{Feed-Forward Neural Networks}
+So what is still missing from the Transformer Network? One aspect is the Feed Forward Node on the Graph from the Start. This is a 2 Layer MLP(Multi Layer Perceptron). The first layer projects the input from a lower dimension to a higher dimension, the second layer then projects the input back to the original dimension. 
+Between the two layers we use a ReLU activation function, to inroduce non linearity. This is done to capture more complex features of the data before passing it into the next Multi-Head Attention Block. 
+\subsection{Residual Connections and Layer Normalization}
+Residual connections in neural networks, introduced by ResNets, help mitigate the vanishing gradient problem by allowing the input to bypass certain layers and be added directly to the output. This creates a shortcut that facilitates better gradient flow and more stable training, especially in very deep networks. Instead of Batch Normalization, which normalizes each feature across the entire batch, Layer Normalization is used in Transformers, normalizing across the features for each individual sample, making it more suitable for varying batch sizes. 
+
+\subsection{Transformers in Computer Grpahics and Vision}   
+We dont really want text, Transformer are currently the best Models we have, so we also want to use them for Computer Vision and Graphics.
+
+\section{Image-GPT}
+The Imaage-GPT uses a Transformer to learn Representation of important Features of images. The Training consists of two steps, first we train a transformer to extract important featurs. Then we use pretrained Network for a Classification Task for the images. 
+\subsection{Image Embedding}
+The image needs to be transformed into a sequence of tokens. To begin we can create a vector of the image data with the size corresponding to the image size. For higher resolutions this is not practical, as the Attention Mechanism is in \(O(n^2 \cdot d)\), so with a resolution of 256x256 we would already have $256^4$ entries.  Scaling the image down is possible but not below 32x32 pixels, so humans can interpret it. Color depth can be 
+reduced to 9 bits by using clustering algorithms. Here in this case we actually use positional encdoing vectors as parameters, compared to before. 
+
+\subsection{Autoregressive Pre-Training}
+
+
+The first pre-training strategy for Image-GPT is based on an autoregressive loss. The probability in an autoregressive model is given by:
+
+\[
+p_{\theta}(x) = \prod_{i=1}^{n} p_{\theta}(x_i | x_{i-1}, \ldots, x_1)
+\]
+
+During autoregressive training, the Transformer is trained to maximize the likelihood of the training sequences (or equivalently minimize the negative log-likelihood):
+
+\[
+L_{AR} = \mathbb{E}_{x \sim X} [-\log p_{\theta}(x)]
+\]
+
+To maintain the autoregressive property, as in the decoder of the Transformer architecture, a mask is applied to the attention scores.
+
+\subsubsection{BERT-Based Pre-Training}
+
+The second pre-training strategy is based on a BERT (Bidirectional Encoder Representations from Transformers) objective. Originally, BERT in the context of NLP is designed to learn how to fill in missing words in a sentence, where 15 \% of the words are missing. Here, the goal is to fill in missing pixels in an image.
+
+A mask \( M \) is sampled, which includes a token \( i \) with a probability of 0.15. The model is then trained to maximize the likelihood of the masked tokens given the unmasked tokens:
+
+\[
+L_{BERT} = \mathbb{E}_{x \sim X} \mathbb{E}_{M} \left[ -\log p(x_i | x_{[1,n] \setminus M}) \right]
+\]
+
+During evaluation, a mask must also be used to avoid a shift in the distribution of input values. However, this mask can reduce the classifier's performance. To mitigate this, five independent masks are drawn, and the class with the highest average probability is predicted.
+
+\subsection{Fine-Tuning}
+TODO: Explain fine tuning
+\subsection{Linear Probing}
+TODO: Explain Linear Probing
+
+\section{Vision Transformer}
+
+Since the following are just facts for different architecutres I will just list them here and their proberties, but you can check out the slides for more or less the exact same Info in German, the following sections are brought to you by a transformer ;D for completness. 
+
+Transform the input image \( x \in \mathbb{R}^{H \times W \times C} \) into 2D patches \( x_p \in \mathbb{R}^{N \times P^2 \times C} \), where:
+\begin{itemize}
+    \item \( H, W \) are the height and width of the image.
+    \item \( C \) is the number of channels.
+    \item \( N = \frac{HW}{P^2} \) is the number of patches (e.g., 16 × 16).
+    \item \( P \) is the resolution of a single patch.
+\end{itemize}
+These patches are then projected linearly onto latent vectors ("embeddings") with dimensionality \( D \).
+
+\subsection{Positional Embedding}
+
+Learnable vectors, called positional embeddings, are added to the patch embeddings to encode positional information.
+
+\subsection{Transformer Encoder}
+
+The Transformer Encoder is a standard Transformer, as discussed previously, used to process the sequence of patch embeddings.
+
+\subsection{Class Token}
+
+A special input token, known as the class token, is introduced. The final state of this token is used as the input to the MLP for classification.
+
+\subsection{MLP Head}
+
+The Multi-Layer Perceptron (MLP) head is used for predicting class labels:
+\begin{itemize}
+    \item During pre-training on a large dataset, it includes a hidden layer.
+    \item During fine-tuning on a smaller dataset, it consists of a single linear layer.
+\end{itemize}
+\subsection{TODO Swin}
+\subsection{TODO CLIP}
+\section{Neural Radiance Fields (NeRF)}
+Now we want to synthesize novel views of a scene from a set of images. 
+\subsection{Plenoptic Function}
+The plenoptic function is a 7D function that describes everything visible in a scene. It is defined as $$P: (\theta, \phi, \lambda, t, V_x, V_y, V_z) \rightarrow \mathbb{R}$$
+Ok here the slides are pretty good actually, I recommend checking them out, but I will try to explain it here as well. $\theta$ and $\phi$ are the angles of the camera, $\lambda$ is the wavelength of the light, $t$ is the time, $V_x, V_y, V_z$ are the coordinates of the point in the scene.
+\subsection{3D Representation}
+We have many ways of representing 3D scenes here are some examples. 
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/representation.png}
+    \caption{3D Representation}
+    \label{fig:3D Representation}
+\end{figure}
 
 \end{document}
